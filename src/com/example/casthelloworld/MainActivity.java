@@ -122,7 +122,12 @@ public class MainActivity extends ActionBarActivity {
                     RecognizerIntent.EXTRA_RESULTS);
             if (matches.size() > 0) {
                 Log.d(TAG, matches.get(0));
-                sendMessage(matches.get(0));
+                Intent intent = new Intent(MainActivity.this, ChromecastService.class);
+                intent.setAction(ChromecastService.ACTION_MESSAGE);
+                intent.putExtra(ChromecastService.EXTRA_MESSAGE, matches.get(0));
+                startService(intent);
+
+                //sendMessage(matches.get(0));
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -174,7 +179,12 @@ public class MainActivity extends ActionBarActivity {
             // Handle the user route selection.
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
 
-            launchReceiver();
+            Intent intent = new Intent(MainActivity.this, ChromecastService.class);
+            intent.putExtra(ChromecastService.EXTRA_MESSAGE, mSelectedDevice);
+//            intent.putExtra(ChromecastService.EXTRA_ROUTER, mMediaRouter);
+            intent.setAction(ChromecastService.ACTION_LAUNCH_RECEIVER);
+            startService(intent);
+//            launchReceiver();
         }
 
         @Override
