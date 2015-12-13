@@ -57,12 +57,19 @@ public class CastMessageService extends Service {
 
     public class ICastMessageService extends Binder {
         public void sendMessage(String message) {
+            Log.d(TAG, "sendMessage: " + message);
             CastMessageService.this.sendMessage(message);
         }
 
         public void launchReceiver(CastDevice device) {
+            Log.d(TAG, "launchReceiver");
             mSelectedDevice = device;
             CastMessageService.this.launchReceiver();
+        }
+
+        public void teardown(boolean selectDefaultRoute) {
+            Log.d(TAG, String.format("teardown with param %s", selectDefaultRoute));
+            CastMessageService.this.teardown(selectDefaultRoute);
         }
     }
 
