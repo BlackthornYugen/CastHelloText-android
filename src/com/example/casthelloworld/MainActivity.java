@@ -27,9 +27,13 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.speech.RecognizerIntent;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
@@ -58,6 +62,7 @@ public class MainActivity extends ActionBarActivity {
 
     private static final int REQUEST_CODE = 1;
 
+    private CastMessageService.ICastMessageService mCastService;
     private MediaRouter mMediaRouter;
     private MediaRouteSelector mMediaRouteSelector;
     private MediaRouter.Callback mMediaRouterCallback;
@@ -89,6 +94,22 @@ public class MainActivity extends ActionBarActivity {
                 startVoiceRecognitionActivity();
             }
         });
+
+        // Bind cast service
+        Intent intent = new Intent(MainActivity.this, CastMessageService.class);
+        bindService(intent, new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "onServiceConnected");
+                mCastService = (CastMessageService.ICastMessageService) service;
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                Log.d(TAG, "onServiceDisconnected");
+                mCastService = null;
+            }
+        }, Context.BIND_AUTO_CREATE);
 
         // Configure Cast device discovery
         mMediaRouter = MediaRouter.getInstance(getApplicationContext());
@@ -174,7 +195,7 @@ public class MainActivity extends ActionBarActivity {
             // Handle the user route selection.
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
 
-            launchReceiver();
+            mCastService.launchReceiver(mSelectedDevice);
         }
 
         @Override

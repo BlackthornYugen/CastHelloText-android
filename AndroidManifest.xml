@@ -47,7 +47,8 @@
         </activity>
 
         <service
-            android:name=".ChromecastService"
+            android:name=".CastMessageService"
+            android:enabled="true"
             android:exported="false"></service>
     </application>
 

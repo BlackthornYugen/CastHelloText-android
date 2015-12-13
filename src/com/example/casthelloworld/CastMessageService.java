@@ -34,41 +34,8 @@ import java.util.ArrayList;
 public class CastMessageService extends Service {
     private static final String TAG = CastMessageService.class.getSimpleName();
 
-    public CastMessageService() {
-        Log.d(TAG, "Started");
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    public class ICastMessageService extends Binder {
-        public void sendMessage(String message) {
-            CastMessageService.this.sendMessage(message);
-        }
-    }
-
-    private void sendMessage(String message) {
-        Log.d(TAG, message);
-    }
-
-
-
-
-
-
-
-
-
-// BORROWED FROM MAIN ACTIVITY //
-
     private static final int REQUEST_CODE = 1;
 
-    private MediaRouter mMediaRouter;
-    private MediaRouteSelector mMediaRouteSelector;
-    private MediaRouter.Callback mMediaRouterCallback;
     private CastDevice mSelectedDevice;
     private GoogleApiClient mApiClient;
     private Cast.Listener mCastListener;
@@ -79,76 +46,34 @@ public class CastMessageService extends Service {
     private boolean mWaitingForReconnect;
     private String mSessionId;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setBackgroundDrawable(new ColorDrawable(
-                getResources().getColor(android.R.color.transparent)));
-
-        // When the user clicks on the button, use Android voice recognition to
-        // get text
-        Button voiceButton = (Button) findViewById(R.id.voiceButton);
-        voiceButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startVoiceRecognitionActivity();
-            }
-        });
-
-        // Configure Cast device discovery
-        mMediaRouter = MediaRouter.getInstance(getApplicationContext());
-        mMediaRouteSelector = new MediaRouteSelector.Builder()
-                .addControlCategory(CastMediaControlIntent.categoryForCast(getResources()
-                        .getString(R.string.app_id))).build();
-        mMediaRouterCallback = new MyMediaRouterCallback();
+    public CastMessageService() {
+        Log.d(TAG, "Started");
     }
 
-    /**
-     * Android voice recognition
-     */
-    private void startVoiceRecognitionActivity() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.message_to_cast));
-        startActivityForResult(intent, REQUEST_CODE);
+    @Override
+    public IBinder onBind(Intent intent) {
+        return new ICastMessageService();
     }
 
-    /*
-     * Handle the voice recognition response
-     *
-     * @see android.support.v4.app.FragmentActivity#onActivityResult(int, int,
-     * android.content.Intent)
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
-            ArrayList<String> matches = data.getStringArrayListExtra(
-                    RecognizerIntent.EXTRA_RESULTS);
-            if (matches.size() > 0) {
-                Log.d(TAG, matches.get(0));
-                sendMessage(matches.get(0));
-            }
+    public class ICastMessageService extends Binder {
+        public void sendMessage(String message) {
+            CastMessageService.this.sendMessage(message);
         }
-        super.onActivityResult(requestCode, resultCode, data);
+
+        public void launchReceiver(CastDevice device) {
+            mSelectedDevice = device;
+            CastMessageService.this.launchReceiver();
+        }
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Start media router discovery
-        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
-    }
 
-    @Override
-    protected void onStop() {
-        // End media router discovery
-        super.onStop();
-    }
+
+
+
+
+
+
+// BORROWED FROM MAIN ACTIVITY //
 
     @Override
     public void onDestroy() {
@@ -157,45 +82,10 @@ public class CastMessageService extends Service {
         super.onDestroy();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.main, menu);
-        MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
-        MediaRouteActionProvider mediaRouteActionProvider
-                = (MediaRouteActionProvider) MenuItemCompat
-                .getActionProvider(mediaRouteMenuItem);
-        // Set the MediaRouteActionProvider selector for device discovery.
-        mediaRouteActionProvider.setRouteSelector(mMediaRouteSelector);
-        return true;
-    }
-
-    /**
-     * Callback for MediaRouter events
-     */
-    private class MyMediaRouterCallback extends MediaRouter.Callback {
-
-        @Override
-        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteSelected");
-            // Handle the user route selection.
-            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
-
-            launchReceiver();
-        }
-
-        @Override
-        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteUnselected: info=" + info);
-            teardown(false);
-            mSelectedDevice = null;
-        }
-    }
-
     /**
      * Start the receiver app
      */
-    private void launchReceiver() {
+    void launchReceiver() {
         try {
             mCastListener = new Cast.Listener() {
 
@@ -358,9 +248,6 @@ public class CastMessageService extends Service {
                 mApplicationStarted = false;
             }
             mApiClient = null;
-        }
-        if (selectDefaultRoute) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
         mSelectedDevice = null;
         mWaitingForReconnect = false;
