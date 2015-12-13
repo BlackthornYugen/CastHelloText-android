@@ -1,25 +1,26 @@
-/*
- * Copyright (C) 2014 Google Inc. All Rights Reserved. 
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
- * limitations under the License.
- */
-
 package com.example.casthelloworld;
+
+import android.app.Service;
+import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Binder;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.speech.RecognizerIntent;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.MediaRouteActionProvider;
+import android.support.v7.media.MediaRouteSelector;
+import android.support.v7.media.MediaRouter;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.common.ConnectionResult;
@@ -27,34 +28,41 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
-import android.content.Intent;
-import android.graphics.drawable.ColorDrawable;
-import android.os.Bundle;
-import android.speech.RecognizerIntent;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.MediaRouteActionProvider;
-import android.support.v7.media.MediaRouteSelector;
-import android.support.v7.media.MediaRouter;
-import android.support.v7.media.MediaRouter.RouteInfo;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.Toast;
-
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * Main activity to send messages to the receiver.
- */
-public class MainActivity extends ActionBarActivity {
+public class CastMessageService extends Service {
+    private static final String TAG = CastMessageService.class.getSimpleName();
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    public CastMessageService() {
+        Log.d(TAG, "Started");
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public class ICastMessageService extends Binder {
+        public void sendMessage(String message) {
+            CastMessageService.this.sendMessage(message);
+        }
+    }
+
+    private void sendMessage(String message) {
+        Log.d(TAG, message);
+    }
+
+
+
+
+
+
+
+
+
+// BORROWED FROM MAIN ACTIVITY //
 
     private static final int REQUEST_CODE = 1;
 
@@ -83,7 +91,7 @@ public class MainActivity extends ActionBarActivity {
         // When the user clicks on the button, use Android voice recognition to
         // get text
         Button voiceButton = (Button) findViewById(R.id.voiceButton);
-        voiceButton.setOnClickListener(new OnClickListener() {
+        voiceButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startVoiceRecognitionActivity();
@@ -139,7 +147,6 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onStop() {
         // End media router discovery
-        mMediaRouter.removeCallback(mMediaRouterCallback);
         super.onStop();
     }
 
@@ -169,7 +176,7 @@ public class MainActivity extends ActionBarActivity {
     private class MyMediaRouterCallback extends MediaRouter.Callback {
 
         @Override
-        public void onRouteSelected(MediaRouter router, RouteInfo info) {
+        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
             Log.d(TAG, "onRouteSelected");
             // Handle the user route selection.
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
@@ -178,7 +185,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
-        public void onRouteUnselected(MediaRouter router, RouteInfo info) {
+        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
             Log.d(TAG, "onRouteUnselected: info=" + info);
             teardown(false);
             mSelectedDevice = null;
@@ -259,7 +266,7 @@ public class MainActivity extends ActionBarActivity {
                                     new ResultCallback<Cast.ApplicationConnectionResult>() {
                                         @Override
                                         public void onResult(
-                                                ApplicationConnectionResult result) {
+                                                Cast.ApplicationConnectionResult result) {
                                             Status status = result.getStatus();
                                             Log.d(TAG,
                                                     "ApplicationConnectionResultCallback.onResult:"
@@ -380,14 +387,14 @@ public class MainActivity extends ActionBarActivity {
                 Log.e(TAG, "Exception while sending message", e);
             }
         } else {
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+            Toast.makeText(CastMessageService.this, message, Toast.LENGTH_SHORT).show();
         }
     }
 
     /**
      * Custom message channel
      */
-    class HelloWorldChannel implements MessageReceivedCallback {
+    class HelloWorldChannel implements Cast.MessageReceivedCallback {
 
         /**
          * @return custom namespace
@@ -401,7 +408,7 @@ public class MainActivity extends ActionBarActivity {
          */
         @Override
         public void onMessageReceived(CastDevice castDevice, String namespace,
-                String message) {
+                                      String message) {
             Log.d(TAG, "onMessageReceived: " + message);
         }
 
